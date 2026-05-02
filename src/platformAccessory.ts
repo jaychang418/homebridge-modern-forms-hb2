@@ -1,4 +1,4 @@
-import { Service, PlatformAccessory, CharacteristicValue, CharacteristicSetCallback, CharacteristicGetCallback } from 'homebridge';
+import { Service, PlatformAccessory, CharacteristicValue } from 'homebridge';
 
 import { ModernFormsPlatform } from './platform';
 import { ModernFormsHttpClient } from './utils/client';
@@ -31,17 +31,17 @@ export class ModernFormsPlatformAccessory {
       this.fanService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.ip);
 
       this.fanService.getCharacteristic(this.platform.Characteristic.On)
-        .on('set', this.setFanOn.bind(this))
-        .on('get', this.getFanOn.bind(this));
+        .onSet(this.setFanOn.bind(this))
+        .onGet(this.getFanOn.bind(this));
 
       this.fanService.getCharacteristic(this.platform.Characteristic.RotationSpeed)
-        .on('set', this.setRotationSpeed.bind(this))
-        .on('get', this.getRotationSpeed.bind(this))
+        .onSet(this.setRotationSpeed.bind(this))
+        .onGet(this.getRotationSpeed.bind(this))
         .setProps({ minStep: this.getStepWithoutGoingOver(6) });
 
       this.fanService.getCharacteristic(this.platform.Characteristic.RotationDirection)
-        .on('set', this.setRotationDirection.bind(this))
-        .on('get', this.getRotationDirection.bind(this));
+        .onSet(this.setRotationDirection.bind(this))
+        .onGet(this.getRotationDirection.bind(this));
 
       // LIGHT SERVICE
 
@@ -52,12 +52,12 @@ export class ModernFormsPlatformAccessory {
       this.lightService.setCharacteristic(this.platform.Characteristic.Name, accessory.context.device.ip);
 
       this.lightService.getCharacteristic(this.platform.Characteristic.On)
-        .on('set', this.setLightOn.bind(this))
-        .on('get', this.getLightOn.bind(this));
+        .onSet(this.setLightOn.bind(this))
+        .onGet(this.getLightOn.bind(this));
 
       this.lightService.getCharacteristic(this.platform.Characteristic.Brightness)
-        .on('get', this.getBrightness.bind(this))
-        .on('set', this.setBrightness.bind(this));
+        .onGet(this.getBrightness.bind(this))
+        .onSet(this.setBrightness.bind(this));
   }
 
   // HELPERS
@@ -72,95 +72,61 @@ export class ModernFormsPlatformAccessory {
 
   // FAN GETTERS / SETTERS
 
-  getFanOn(callback: CharacteristicGetCallback) {
+  async getFanOn(): Promise<CharacteristicValue> {
     this.debug('Get Fan Characteristic On');
-
-    this.client.get()
-      .then(data => callback(null, data.fanOn))
-      .catch(callback);
+    const data = await this.client.get();
+    return data.fanOn;
   }
 
-  setFanOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setFanOn(value: CharacteristicValue): Promise<void> {
     this.debug('Set Fan Characteristic On ->', value);
-
-    this.client.update({ fanOn: Boolean(value) })
-      .then(() => callback(null))
-      .catch(callback);
+    await this.client.update({ fanOn: Boolean(value) });
   }
 
-  getRotationSpeed(callback: CharacteristicGetCallback) {
-    this.debug('Get Fan Characteristic On');
-
-    this.client.get()
-      .then(data => callback(null, data.fanSpeed * 100 / NUMBER_OF_FAN_SPEEDS))
-      .catch(callback);
+  async getRotationSpeed(): Promise<CharacteristicValue> {
+    this.debug('Get Fan Characteristic RotationSpeed');
+    const data = await this.client.get();
+    return data.fanSpeed * 100 / NUMBER_OF_FAN_SPEEDS;
   }
 
-  setRotationDirection(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    this.debug('Set Fan Characteristic On ->', value);
-
-    this.client.update({
-      fanDirection: value === 0 ? 'forward' : 'reverse',
-    })
-      .then(() => callback(null))
-      .catch(callback);
-  }
-
-  getRotationDirection(callback: CharacteristicGetCallback) {
-    this.debug('Get Fan Characteristic On');
-
-    this.client.get()
-      .then(data => callback(null, data.fanDirection === 'forward' ? 0 : 1))
-      .catch(callback);
-  }
-
-  setRotationSpeed(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    this.debug('Set Fan Characteristic On ->', value);
-
+  async setRotationSpeed(value: CharacteristicValue): Promise<void> {
+    this.debug('Set Fan Characteristic RotationSpeed ->', value);
     const fanSpeed = Math.round(value as number / 100 * NUMBER_OF_FAN_SPEEDS);
+    await this.client.update({ fanOn: fanSpeed > 0, fanSpeed });
+  }
 
-    this.client.update({
-      fanOn: fanSpeed > 0,
-      fanSpeed,
-    })
-      .then(() => callback(null))
-      .catch(callback);
+  async getRotationDirection(): Promise<CharacteristicValue> {
+    this.debug('Get Fan Characteristic RotationDirection');
+    const data = await this.client.get();
+    return data.fanDirection === 'forward' ? 0 : 1;
+  }
+
+  async setRotationDirection(value: CharacteristicValue): Promise<void> {
+    this.debug('Set Fan Characteristic RotationDirection ->', value);
+    await this.client.update({ fanDirection: value === 0 ? 'forward' : 'reverse' });
   }
 
   // LIGHT GETTERS / SETTERS
 
-  getLightOn(callback: CharacteristicGetCallback) {
+  async getLightOn(): Promise<CharacteristicValue> {
     this.debug('Get Light Characteristic On');
-
-    this.client.get()
-      .then(data => callback(null, data.lightOn))
-      .catch(callback);
+    const data = await this.client.get();
+    return data.lightOn;
   }
 
-  setLightOn(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+  async setLightOn(value: CharacteristicValue): Promise<void> {
     this.debug('Set Light Characteristic On ->', value);
-
-    this.client.update({ lightOn: Boolean(value) })
-      .then(() => callback(null))
-      .catch(callback);
+    await this.client.update({ lightOn: Boolean(value) });
   }
 
-  getBrightness(callback: CharacteristicSetCallback) {
+  async getBrightness(): Promise<CharacteristicValue> {
     this.debug('Get Characteristic Brightness');
-
-    this.client.get()
-      .then(data => callback(null, data.lightBrightness))
-      .catch(callback);
+    const data = await this.client.get();
+    return data.lightBrightness;
   }
 
-  setBrightness(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    this.debug('Set Characteristic Brightness -> ', value);
-
-    this.client.update({
-      lightOn: value > 0,
-      lightBrightness: value as number,
-    })
-      .then(() => callback(null))
-      .catch(callback);
+  async setBrightness(value: CharacteristicValue): Promise<void> {
+    this.debug('Set Characteristic Brightness ->', value);
+    await this.client.update({ lightOn: (value as number) > 0, lightBrightness: value as number });
   }
 }
