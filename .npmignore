@@ -1,6 +1,9 @@
 # Ignore source code
 src
 
+# Claude Code session files
+.claude
+
 # ------------- Defaults ------------- #
 
 # eslint
