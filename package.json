@@ -1,7 +1,7 @@
 {
   "displayName": "Modern Forms (HB2)",
   "name": "homebridge-modern-forms-hb2",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Add Modern Forms fans to your Home app using Homebridge. Fork of homebridge-modern-forms updated for Homebridge 2.0.",
   "license": "Apache-2.0",
   "repository": {
