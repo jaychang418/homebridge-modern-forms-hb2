@@ -2,7 +2,7 @@
 
 Add support for [Modern Forms](https://modernforms.com) fans to HomeKit using Homebridge.
 
-> **Note:** This is a community fork of [homebridge-modern-forms](https://github.com/nickbreaton/homebridge-modern-forms) by Nick Breaton, updated for Homebridge 2.0 compatibility. All credit for the original implementation goes to the original author. This fork exists solely to keep the plugin working on current Homebridge versions.
+> **Note:** This is a community fork of [homebridge-modern-forms](https://github.com/nickbreaton/homebridge-modern-forms) by Nick Breaton, updated for Homebridge 2.0 compatibility. All credit for the original implementation goes to the original author. This fork exists solely to keep the plugin working on current Homebridge versions.  This was coded using Claude Code.
 
 ## Requirements
 
