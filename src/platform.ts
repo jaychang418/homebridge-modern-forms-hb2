@@ -98,8 +98,19 @@ export class ModernFormsPlatform implements DynamicPlatformPlugin {
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     });
 
-    existingDevices$.subscribe(({ clientId, existingAccessory }) => {
+    // Restore a cached fan. If the fan was rediscovered at a different IP than
+    // the one stored in the cache (e.g. the user changed its DHCP reservation,
+    // or a new lease was issued), overwrite the cached IP and persist it so
+    // subsequent HTTP calls reach the fan instead of the stale address.
+    existingDevices$.subscribe(({ ip, clientId, existingAccessory }) => {
       this.log.info('Restoring existing accessory from cache:', clientId);
+      if (existingAccessory!.context.device.ip !== ip) {
+        this.log.info(
+          `IP for ${clientId} changed from ${existingAccessory!.context.device.ip} to ${ip}; updating cached accessory`,
+        );
+        existingAccessory!.context.device.ip = ip;
+        this.api.updatePlatformAccessories([existingAccessory!]);
+      }
       new ModernFormsPlatformAccessory(this, existingAccessory!);
     });
   }
