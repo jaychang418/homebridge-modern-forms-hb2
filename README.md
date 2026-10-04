@@ -63,6 +63,14 @@ To disable automatic network scanning and rely solely on manually specified IPs:
 
 ## Troubleshooting
 
+### Fan shows normally in the Home app but ignores every tap
+
+**Symptom:** The fan appears fine in the Home app (no "No Response"), but turning it on or off does nothing, and Homebridge logs no errors. The Modern Forms app still controls the fan.
+
+**Cause:** On v2.0.2 and earlier, if the fan was unreachable at the moment Homebridge started (for example, a brief Wi-Fi drop), the plugin never connected the Home app controls to the cached fan and never retried.
+
+**Fix:** Update to **v2.0.3** or later. The controls are now connected at startup using the fan's last known IP; if the fan is offline, the Home app shows "No Response" and recovers on its own once the fan is reachable. On older versions, restart the plugin's child bridge while the fan is online.
+
 ### Fan stops responding after its IP address changes
 
 **Symptom:** Homebridge logs show repeated errors like `connect EHOSTUNREACH <old-ip>` and the fan stops responding in the Home app, even though the fan is online and reachable from your network.
@@ -87,4 +95,5 @@ On restart you'll see a log line like `IP for <clientId> changed from <old> to <
 - Node.js minimum raised to 18.20.4 (matches Homebridge 2.0 requirement)
 - Removed unused dependency (`@network-utils/arp-lookup`)
 - Updated `axios` to v1.x
+- **v2.0.3:** Fans that were offline when Homebridge started now work as soon as they come back, instead of silently ignoring commands until the next restart. Requests to a fan now time out after 5 seconds.
 - **v2.0.2:** Automatically refresh cached fan IP addresses when a fan is rediscovered at a new IP (fixes persistent `EHOSTUNREACH` errors after a DHCP/reservation change)

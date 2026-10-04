@@ -60,6 +60,12 @@ export class ModernFormsPlatformAccessory {
         .onSet(this.setBrightness.bind(this));
   }
 
+  // Switch this fan to a new IP address without rebuilding its HomeKit services.
+  updateIp(ip: string) {
+    this.accessory.context.device.ip = ip;
+    this.client.setIp(ip);
+  }
+
   // HELPERS
 
   getStepWithoutGoingOver = (steps: number) => {

@@ -14,21 +14,31 @@ type RequestPayload = Omit<Partial<ResponsePayload>, 'clientId'>
 
 const BATCH_TIME = Math.floor(1000 / 60);
 
+// Give up on a fan that hasn't answered within this many milliseconds,
+// so HomeKit shows "No Response" instead of waiting forever.
+const REQUEST_TIMEOUT = 5000;
+
 export class ModernFormsHttpClient {
   private nextUpdatePayloads: RequestPayload[] = []
   private nextUpdateCallbacks: Array<(promise: Promise<ResponsePayload>) => void> = []
 
-  constructor(private readonly ip: string) {}
+  constructor(private ip: string) {}
 
   // PRIVATE
 
+  // Send one command (or status query) to the fan and return its reply.
   private request(payload: RequestPayload & { queryDynamicShadowData?: 1 }) {
     return axios
-      .post<ResponsePayload>(`http://${this.ip}/mf`, payload)
+      .post<ResponsePayload>(`http://${this.ip}/mf`, payload, { timeout: REQUEST_TIMEOUT })
       .then(res => res.data);
   }
 
   // PUBLIC
+
+  // Point this client at a new address, e.g. after the fan's IP changed.
+  public setIp(ip: string) {
+    this.ip = ip;
+  }
 
   public readonly get = memoize(
     () => this.request({ queryDynamicShadowData: 1 }),

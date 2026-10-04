@@ -20,6 +20,7 @@ export class ModernFormsPlatform implements DynamicPlatformPlugin {
   public readonly Service: typeof Service = this.api.hap.Service;
   public readonly Characteristic: typeof Characteristic = this.api.hap.Characteristic;
   public readonly accessories: PlatformAccessory[] = [];
+  private readonly handlers = new Map<string, ModernFormsPlatformAccessory>();
 
   constructor(
     public readonly log: Logger,
@@ -34,9 +35,15 @@ export class ModernFormsPlatform implements DynamicPlatformPlugin {
     });
   }
 
+  // Restore a fan saved from a previous run and wire up its HomeKit controls
+  // straight away, using its last known IP. This must not wait for discovery:
+  // if the fan happens to be offline at startup, discovery won't find it, and
+  // without handlers HomeKit would show the fan as fine while ignoring every tap.
+  // Instead, requests fail ("No Response") until the fan is reachable again.
   configureAccessory(accessory: PlatformAccessory) {
     this.log.info('Loading accessory from cache:', accessory.displayName);
     this.accessories.push(accessory);
+    this.handlers.set(accessory.UUID, new ModernFormsPlatformAccessory(this, accessory));
   }
 
   async discoverDevices() {
@@ -94,13 +101,14 @@ export class ModernFormsPlatform implements DynamicPlatformPlugin {
       this.log.info('Adding new accessory:', clientId);
       const accessory = new this.api.platformAccessory(clientId, uuid);
       accessory.context.device = { uuid, ip, clientId };
-      new ModernFormsPlatformAccessory(this, accessory);
+      this.handlers.set(uuid, new ModernFormsPlatformAccessory(this, accessory));
       this.api.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
     });
 
-    // Restore a cached fan. If the fan was rediscovered at a different IP than
-    // the one stored in the cache (e.g. the user changed its DHCP reservation,
-    // or a new lease was issued), overwrite the cached IP and persist it so
+    // A cached fan was found on the network. Its controls are already wired up
+    // in configureAccessory. If it was rediscovered at a different IP than the
+    // one stored in the cache (e.g. the user changed its DHCP reservation, or a
+    // new lease was issued), point it at the new IP and persist that so
     // subsequent HTTP calls reach the fan instead of the stale address.
     existingDevices$.subscribe(({ ip, clientId, existingAccessory }) => {
       this.log.info('Restoring existing accessory from cache:', clientId);
@@ -108,10 +116,9 @@ export class ModernFormsPlatform implements DynamicPlatformPlugin {
         this.log.info(
           `IP for ${clientId} changed from ${existingAccessory!.context.device.ip} to ${ip}; updating cached accessory`,
         );
-        existingAccessory!.context.device.ip = ip;
+        this.handlers.get(existingAccessory!.UUID)!.updateIp(ip);
         this.api.updatePlatformAccessories([existingAccessory!]);
       }
-      new ModernFormsPlatformAccessory(this, existingAccessory!);
     });
   }
 }
