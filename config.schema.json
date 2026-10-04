@@ -7,14 +7,22 @@
     "properties": {
       "autoDiscover": {
         "title": "Auto discover",
-        "description": "Disable automatic discovery of fans on your local network.",
+        "description": "Scan your local network for Modern Forms fans at startup. Turn off to use only the fans listed below.",
         "type": "boolean",
         "default": true,
         "required": false
       },
+      "pollingInterval": {
+        "title": "Status check interval (seconds)",
+        "description": "How often to check each fan's state, so changes made with the remote or the Modern Forms app show up in the Home app. Set to 0 to turn off.",
+        "type": "integer",
+        "default": 10,
+        "minimum": 0,
+        "required": false
+      },
       "fans": {
         "title": "Fans",
-        "description": "(optional) Fans will be automatically discovered.",
+        "description": "(optional) Fans are discovered automatically. List a fan here if it isn't found, or to hide its light.",
         "type": "array",
         "items": {
           "title": "Fan",
@@ -25,6 +33,13 @@
               "type": "string",
               "required": true,
               "format": "ipv4"
+            },
+            "light": {
+              "title": "Has a light",
+              "description": "Turn off for fans without a light kit, to hide the light tile.",
+              "type": "boolean",
+              "default": true,
+              "required": false
             }
           }
         }

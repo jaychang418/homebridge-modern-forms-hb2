@@ -1,13 +1,22 @@
 import axios from 'axios';
 import memoize from 'memoizee';
 
-type ResponsePayload = {
+export type ResponsePayload = {
     fanOn: boolean,
     fanSpeed: number,
     fanDirection: 'forward' | 'reverse',
     lightOn: boolean,
     lightBrightness: number,
     clientId: string
+}
+
+// Fixed details the fan reports about itself (name, light kit, firmware).
+export type StaticPayload = {
+    clientId: string,
+    deviceName?: string,
+    fanType?: string,
+    lightType?: string,
+    firmwareVersion?: string,
 }
 
 type RequestPayload = Omit<Partial<ResponsePayload>, 'clientId'>
@@ -27,9 +36,9 @@ export class ModernFormsHttpClient {
   // PRIVATE
 
   // Send one command (or status query) to the fan and return its reply.
-  private request(payload: RequestPayload & { queryDynamicShadowData?: 1 }) {
+  private request<T = ResponsePayload>(payload: RequestPayload & { queryDynamicShadowData?: 1, queryStaticShadowData?: 1 }) {
     return axios
-      .post<ResponsePayload>(`http://${this.ip}/mf`, payload, { timeout: REQUEST_TIMEOUT })
+      .post<T>(`http://${this.ip}/mf`, payload, { timeout: REQUEST_TIMEOUT })
       .then(res => res.data);
   }
 
@@ -40,12 +49,20 @@ export class ModernFormsHttpClient {
     this.ip = ip;
   }
 
+  // Ask the fan for its current state (on/off, speed, light...).
   public readonly get = memoize(
     () => this.request({ queryDynamicShadowData: 1 }),
     { maxAge: BATCH_TIME },
   )
 
-  public readonly update = (payload: RequestPayload) => {
+  // Ask the fan for its fixed details (name, light kit, firmware).
+  public getStatic() {
+    return this.request<StaticPayload>({ queryStaticShadowData: 1 });
+  }
+
+  // Queue a change for the fan. Changes made within a few milliseconds of each
+  // other are merged into one request. Resolves with the fan's reply.
+  public readonly update = (payload: RequestPayload): Promise<ResponsePayload> => {
     if (this.nextUpdatePayloads.length === 0) {
       setTimeout(() => {
         const payload = this.nextUpdatePayloads.reduce<RequestPayload>((final, current) => {
